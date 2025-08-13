@@ -1,0 +1,2 @@
+log in  ../model/ACDC/scribformer_MAAGfold /scribble/2025_08_13_08_38_39_log.txt
+{'batch_size': 8, 'max_epoches': 100, 'networks': 'networks.scribformer', 'lr': 0.001, 'num_workers': 8, 'wt_dec': 0.0005, 'session_name': 'TransCAM', 'crop_size': 512, 'weights': '', 'tblog_dir': './tblog', 'deterministic': 1, 'root_path': '../data/ACDC', 'patch_size': [256, 256], 'fold': 'MAAGfold ', 'sup_type': 'scribble', 'seed': 2022, 'exp': 'ACDC/scribformer', 'model': 'scribformer', 'linear_layer': False, 'bilinear': True, 'weight_cam': 0, 'weight_cam_subloss': [1, 1, 1, 1]}

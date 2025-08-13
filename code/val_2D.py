@@ -78,7 +78,7 @@ def test_all_case_2D(valloader, net, args):
 
     for i_batch, sampled_batch in enumerate(valloader):
         image = sampled_batch["image"]
-        label = sampled_batch["gt"]
+        label = sampled_batch["label"]
         label = label.squeeze(0).cpu().detach().numpy()
         prediction  = test_single_case_resizeBlock_2d(net, args.model, image, args.patch_size, args.batch_size)
         for i in range(1, args.num_classes):

@@ -132,8 +132,8 @@ def train(args, snapshot_path):
     for epoch_num in iterator:
         for iter, sampled_batch in enumerate(trainloader):
 
-            img, label, gt = sampled_batch['image'], sampled_batch['label'], sampled_batch['gt']
-            img, label, gt = img.cuda(), label.cuda(), gt.cuda()
+            img, label = sampled_batch['image'], sampled_batch['label']
+            img, label = img.cuda(), label.cuda()
 
             outputs, outputs_aux1 = model(img)
             outputs_soft1 = torch.softmax(outputs, dim=1)

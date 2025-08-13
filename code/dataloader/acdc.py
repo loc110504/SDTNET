@@ -144,67 +144,66 @@ class BaseDataSets(Dataset):
                             "/ACDC_training_volumes/{}".format(case), 'r')
         image = h5f['image'][:]
         label = h5f['label'][:]
-        gt = h5f['label'][:]
-        sample = {'image': image, 'label': label.astype(np.uint8), 'gt': gt.astype(np.uint8)}
+        sample = {'image': image, 'label': label}
         if self.split == "train":
             image = h5f['image'][:]
             if self.sup_type == "random_walker":
                 label = pseudo_label_generator_acdc(image, h5f["scribble"][:])
             else:
                 label = h5f[self.sup_type][:]
-            sample = {'image': image, 'label': label.astype(np.uint8), 'gt': gt.astype(np.uint8)}
+            sample = {'image': image, 'label': label}
             sample = self.transform(sample)
         else:
             image = h5f['image'][:]
             label = h5f['label'][:]
-            gt = h5f['label'][:]
-            sample = {'image': image, 'label': label.astype(np.uint8), 'gt': gt.astype(np.uint8)}
+            sample = {'image': image, 'label': label}
         sample["idx"] = idx
-        return sample # return image, label(scrib), idx
+        return sample
 
 
-def random_rot_flip(image, label,gt):
+def random_rot_flip(image, label):
     k = np.random.randint(0, 4)
     image = np.rot90(image, k)
     label = np.rot90(label, k)
-    gt = np.rot90(gt, k)
-
     axis = np.random.randint(0, 2)
     image = np.flip(image, axis=axis).copy()
     label = np.flip(label, axis=axis).copy()
-    gt = np.flip(gt, axis=axis).copy()
-    return image, label, gt
+    return image, label
 
 
-def random_rotate(image, label, gt, cval): #2d
+def random_rotate(image, label, cval):
     angle = np.random.randint(-20, 20)
     image = ndimage.rotate(image, angle, order=0, reshape=False)
-    label = ndimage.rotate(label, angle, order=0, reshape=False, mode="constant", cval=cval)
-    gt = ndimage.rotate(gt, angle, order=0, reshape=False, mode="constant", cval=0)
-    return image, label, gt
+    label = ndimage.rotate(label, angle, order=0,
+                           reshape=False, mode="constant", cval=cval)
+    return image, label
 
-class RandomGenerator(object): #2d
+
+class RandomGenerator(object):
     def __init__(self, output_size):
         self.output_size = output_size
-        self.num_classes= 4
 
     def __call__(self, sample):
-        image, label, gt = sample["image"], sample["label"], sample['gt']
+        image, label = sample['image'], sample['label']
+        # ind = random.randrange(0, img.shape[0])
+        # image = img[ind, ...]
+        # label = lab[ind, ...]
         if random.random() > 0.5:
-            image, label, gt = random_rot_flip(image, label, gt)
+            image, label = random_rot_flip(image, label)
         elif random.random() > 0.5:
-            if self.num_classes in np.unique(label):
-                image, label, gt = random_rotate(image, label,gt, cval=self.num_classes)
+            if 4 in np.unique(label):
+                image, label = random_rotate(image, label, cval=4)
             else:
-                image, label, gt = random_rotate(image, label,gt, cval=0)
+                image, label = random_rotate(image, label, cval=0)
         x, y = image.shape
-        image = zoom(image, (self.output_size[0] / x, self.output_size[1] / y), order=0)
-        label = zoom(label, (self.output_size[0] / x, self.output_size[1] / y), order=0)
-        gt = zoom(gt, (self.output_size[0] / x, self.output_size[1] / y), order=0)
-        image = torch.from_numpy(image.astype(np.float32)).unsqueeze(0)
+        image = zoom(
+            image, (self.output_size[0] / x, self.output_size[1] / y), order=0)
+        label = zoom(
+            label, (self.output_size[0] / x, self.output_size[1] / y), order=0)
+        image = torch.from_numpy(
+            image.astype(np.float32)).unsqueeze(0)
         label = torch.from_numpy(label.astype(np.uint8))
-        gt = torch.from_numpy(gt.astype(np.uint8))
-        sample = {"image": image, "label": label, "gt":gt}
+        sample = {'image': image, 'label': label}
         return sample
 
 
