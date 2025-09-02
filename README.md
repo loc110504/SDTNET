@@ -10,3 +10,7 @@ This repository provides re-implementations of several scribble-supervised metho
 6. [DMSPS - MedIA 2024](https://www.sciencedirect.com/science/article/abs/pii/S1361841524001993?dgcid=author) ✅
 7. [ScribbleVS - ArXix 2024](https://arxiv.org/pdf/2411.10237) ✅
 8. [TABNet - ArXiv 2025](https://arxiv.org/pdf/2507.02399) (Updating)
+
+
+### Acknowledgement
+This repo partially uses code from [Hilab-WSL4MIS](https://github.com/HiLab-git/WSL4MIS) and[ShapePU](https://github.com/BWGZK/ShapePU)
