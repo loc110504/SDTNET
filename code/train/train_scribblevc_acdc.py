@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from tqdm import tqdm
 
-from dataloader.acdc import BaseDataSets_ScribbleVC, RandomGenerator
+from dataloader.acdc import BaseDataSets_ScribbleVC, RandomGeneratorVC
 from torchmetrics.classification import MultilabelAccuracy
 from tool import pyutils
 from utils.gate_crf_loss import ModelLossSemsegGatedCRF
@@ -121,7 +121,7 @@ def train(args, snapshot_path):
     db_train = BaseDataSets_ScribbleVC(
         base_dir=args.root_path, 
         split="train", 
-        transform=transforms.Compose([RandomGenerator(args.patch_size)]), 
+        transform=transforms.Compose([RandomGeneratorVC(args.patch_size)]), 
         fold=args.fold, 
         sup_type=args.sup_type
     )

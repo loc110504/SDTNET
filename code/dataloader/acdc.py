@@ -281,7 +281,7 @@ class BaseDataSets_ScribbleVC(Dataset):
                 label = pseudo_label_generator_acdc(image, h5f["scribble"][:])
             else:
                 label = h5f[self.sup_type][:]
-            sample = {'image': image, 'label': label, 'category': torch.from_numpy(self.category_list.loc[case].values)}
+            sample = {'image': image, 'label': label, 'gt': h5f['label'][:], 'category': torch.from_numpy(self.category_list.loc[case].values)}
             if self.transform:
                 category_backup = sample['category'].clone()
                 sample = self.transform(sample)
@@ -311,6 +311,35 @@ def random_rotate(image, label, cval):
                            reshape=False, mode="constant", cval=cval)
     return image, label
 
+class RandomGeneratorVC(object):
+    def __init__(self, output_size):
+        self.output_size = output_size
+
+    def __call__(self, sample):
+        image, label, gt = sample['image'], sample['label'], sample['gt']
+        # ind = random.randrange(0, img.shape[0])
+        # image = img[ind, ...]
+        # label = lab[ind, ...]
+        if random.random() > 0.5:
+            image, label, gt = random_rot_flip(image, label, gt)
+        elif random.random() > 0.5:
+            if 4 in np.unique(label):
+                image, label, gt = random_rotate(image, label, gt, cval=4)
+            else:
+                image, label, gt = random_rotate(image, label, gt, cval=0)
+        x, y = image.shape
+        image = zoom(
+            image, (self.output_size[0] / x, self.output_size[1] / y), order=0)
+        label = zoom(
+            label, (self.output_size[0] / x, self.output_size[1] / y), order=0)
+        gt = zoom(
+            gt, (self.output_size[0] / x, self.output_size[1] / y), order=0)
+        image = torch.from_numpy(
+            image.astype(np.float32)).unsqueeze(0)
+        label = torch.from_numpy(label.astype(np.uint8))
+        gt = torch.from_numpy(gt.astype(np.uint8))
+        sample['image'], sample['label'], sample['gt'] = image, label, gt
+        return sample
 
 class RandomGenerator(object):
     def __init__(self, output_size):
