@@ -23,7 +23,7 @@ parser.add_argument('--root_path', type=str,
 parser.add_argument('--exp', type=str,
                     default='ACDC/Fully_Supervised', help='experiment_name')
 parser.add_argument('--model', type=str,
-                    default='unet', help='model_name')
+                    default='unet_cct', help='model_name')
 parser.add_argument('--num_classes', type=int,  default=4,
                     help='output channel of network')
 
@@ -50,8 +50,8 @@ def test_single_volume(case, net, test_save_path, FLAGS):
             0).unsqueeze(0).float().cuda()
         net.eval()
         with torch.no_grad():
-            if FLAGS.model == "unet_urds":
-                out_main, _, _, _ = net(input)
+            if FLAGS.model == "unet_cct":
+                out_main, _ = net(input)
             else:
                 out_main = net(input)
             out = torch.argmax(torch.softmax(
@@ -81,8 +81,8 @@ def Inference(FLAGS):
         image_list = f.readlines()
     image_list = sorted([item.replace('\n', '').split(".")[0]
                          for item in image_list])
-    save_mode_path = "../../checkpoints/ACDC_TABNet/unet_best_model.pth"
-    test_save_path = "../../results/ACDC_TABNet"
+    save_mode_path = "../../checkpoints/ACDC_DMPLS/unet_cct_best_model.pth"
+    test_save_path = "../../results/ACDC_DMPLS"
     if os.path.exists(test_save_path):
         shutil.rmtree(test_save_path)
     os.makedirs(test_save_path)
