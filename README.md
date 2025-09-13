@@ -16,10 +16,6 @@ This repository provides re-implementations of some papers about scribble-superv
 
 ### Benchmark on ACDC
 
-## 📊 Quantitative Results on ACDC
-
-## 📊 Quantitative Results on ACDC
-
 | Method    | LV Dice ↑ | LV HD95 ↓ | RV Dice ↑ | RV HD95 ↓ | MYO Dice ↑ | MYO HD95 ↓ | **Mean Dice ↑** | **Mean HD95 ↓** |
 |-----------|-----------|-----------|-----------|-----------|-------------|-------------|-----------------|-----------------|
 | **TABNet** | 0.882     | 1.818     | 0.868     | 1.244     | 0.928       | 2.476       | **0.892**       | **1.846**       |
