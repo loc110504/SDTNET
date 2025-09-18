@@ -55,7 +55,7 @@ class MSCMRDataSets(Dataset):
         elif self.split == 'val':
             self.sample_list = os.listdir(
                 self._base_dir + "/MSCMR_validation_volumes")
-                
+
         print("total {} samples".format(len(self.sample_list)))
 
     def __len__(self):
@@ -68,7 +68,7 @@ class MSCMRDataSets(Dataset):
                             "/MSCMR_training_slices/{}".format(case), 'r')
         else:
             h5f = h5py.File(self._base_dir +
-                            "/MSCMR_training_volumes/{}".format(case), 'r')
+                            "/MSCMR_validation_volumes/{}".format(case), 'r')
         image = h5f['image'][:]
         label = h5f['label'][:]
         sample = {'image': image, 'label': label}
