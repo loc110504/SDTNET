@@ -2,6 +2,5 @@
 # python TABNet2.py
 # python TABNet_nocutout.py
 
-python TABNet4.py
-python TABNet5.py
-python TABNet6.py
+python TABNet7.py
+python TABNet8.py
