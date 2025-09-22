@@ -29,7 +29,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--root_path', type=str,
                     default='../../data/ACDC', help='Name of Experiment')
 parser.add_argument('--exp', type=str,
-                    default='ScribbleVSCus', help='experiment_name')
+                    default='ScribbleVSCus1', help='experiment_name')
 parser.add_argument('--data', type=str,
                     default='ACDC', help='experiment_name')
 parser.add_argument('--tau', type=float,
@@ -43,7 +43,7 @@ parser.add_argument('--model', type=str,
 parser.add_argument('--num_classes', type=int,  default=4,
                     help='output channel of network')
 parser.add_argument('--max_iterations', type=int,
-                    default=60000, help='maximum epoch number to train')
+                    default=30000, help='maximum epoch number to train')
 parser.add_argument('--batch_size', type=int, default=8,
                     help='batch_size per gpu')
 parser.add_argument('--deterministic', type=int,  default=1,
@@ -163,8 +163,7 @@ def train(args, snapshot_path):
             B_j  = exrct_boundary(outputs_soft_ema,  iter_=1)
             loss_BD = bd_loss_fn(B_j, B_pl.detach()) + bd_loss_fn(B_i, B_pl.detach())
 
-            consistency_weight = get_current_consistency_weight(iter_num // 300)  #150
-            loss_pse_sup = (loss_PL * 0.5 * consistency_weight)
+            loss_pse_sup = (loss_PL * 0.3)
             loss = loss_ce + loss_pse_sup + 0.1 * loss_BD
             optimizer.zero_grad()
             loss.backward()
