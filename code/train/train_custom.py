@@ -22,6 +22,7 @@ import torch.nn.functional as F
 from dataloader.acdc import BaseDataSets, RandomGenerator
 from networks.net_factory import net_factory
 from utils import losses, ramps
+from utils.Jigsaw import  exrct_boundary, BoundaryLoss
 from val import test_single_volume_scribblevs
 
 parser = argparse.ArgumentParser()
@@ -120,6 +121,7 @@ def train(args, snapshot_path):
     ema_optimizer = WeightEMA(model, model_ema, alpha=0.99)
     ce_loss = CrossEntropyLoss(ignore_index=4)
     dice_loss = losses.pDLoss(num_classes, ignore_index=4)
+    bd_loss_fn = BoundaryLoss(iter_=1, weight_boundary=1.0)
 
     writer = SummaryWriter(snapshot_path + '/log')
     logging.info("{} iterations per epoch".format(len(trainloader)))
@@ -141,8 +143,7 @@ def train(args, snapshot_path):
                 outputs_soft_ema = torch.softmax(ema_output, dim=1)
             outputs = model(volume_batch)
             outputs_soft1 = torch.softmax(outputs, dim=1)
-            pseudo_label = process_pseudo_label(outputs_soft_ema, tau=args.tau)
-            pseudo_label_stu = process_pseudo_label(outputs_soft1, tau=args.tau)
+
             loss_ce = ce_loss(outputs, label_batch.long())
             loss_ce_pseudo = ce_loss(ema_output, label_batch.long())
 
@@ -155,9 +156,16 @@ def train(args, snapshot_path):
             y_pl = torch.argmax(mixed_prob.detach(), dim=1)  
             loss_PL = dice_loss(outputs_soft1, y_pl.unsqueeze(1)) + dice_loss(outputs_soft_ema, y_pl.unsqueeze(1))
 
+
+            y_pl_oh = F.one_hot(y_pl, num_classes=num_classes).permute(0, 3, 1, 2).float()
+            B_pl = exrct_boundary(y_pl_oh, iter_=1)
+            B_i  = exrct_boundary(outputs_soft1,  iter_=1)
+            B_j  = exrct_boundary(outputs_soft_ema,  iter_=1)
+            loss_BD = bd_loss_fn(B_j, B_pl.detach()) + bd_loss_fn(B_i, B_pl.detach())
+
             consistency_weight = get_current_consistency_weight(iter_num // 300)  #150
             loss_pse_sup = (loss_PL * 0.5 * consistency_weight)
-            loss = loss_ce + loss_pse_sup
+            loss = loss_ce + loss_pse_sup + 0.1 * loss_BD
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
