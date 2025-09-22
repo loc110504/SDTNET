@@ -85,7 +85,7 @@ def Inference(FLAGS):
         if f.endswith(".h5")
     ]
     image_list.sort()
-    save_mode_path = "../../checkpoints/MSCMR_ScribbleVS/unet_best_model.pth"
+    save_mode_path = "../../checkpoints/MSCMR_XNet/unet_best_model.pth"
     test_save_path = "../../results/MSCMR_DMSPS_Stage1/"
     if os.path.exists(test_save_path):
         shutil.rmtree(test_save_path)
