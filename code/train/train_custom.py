@@ -151,8 +151,8 @@ def train(args, snapshot_path):
                 w_i = (loss_ce_pseudo.detach() / denom).item()
                 w_pseudo = (loss_ce.detach() / denom).item()
 
-            y_pl = w_i * pseudo_label + w_pseudo * pseudo_label_stu
-
+            mixed_prob = w_i * outputs_soft1 + w_pseudo * outputs_soft_ema
+            y_pl = torch.argmax(mixed_prob.detach(), dim=1)  
             loss_PL = dice_loss(outputs_soft1, y_pl.unsqueeze(1)) + dice_loss(outputs_soft_ema, y_pl.unsqueeze(1))
 
             consistency_weight = get_current_consistency_weight(iter_num // 300)  #150

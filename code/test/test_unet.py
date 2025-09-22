@@ -81,7 +81,7 @@ def Inference(FLAGS):
         image_list = f.readlines()
     image_list = sorted([item.replace('\n', '').split(".")[0]
                          for item in image_list])
-    save_mode_path = "../../checkpoints/ACDC_XNet/unet_best_model.pth"
+    save_mode_path = "../../checkpoints/ACDC_ScribbleVSCus/unet_best_model.pth"
     test_save_path = "../../results/ACDC_DMSPS1"
     if os.path.exists(test_save_path):
         shutil.rmtree(test_save_path)
