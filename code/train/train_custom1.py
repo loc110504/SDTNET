@@ -57,10 +57,6 @@ parser.add_argument('--gpu', type=str, default='0', help='GPU to use')
 args = parser.parse_args()
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 
-def get_current_consistency_weight(epoch):
-    # Consistency ramp-up from https://arxiv.org/abs/1610.02242
-    return 1 * ramps.sigmoid_rampup(epoch, 40)
-
 def create_model(ema=False,num_classes=4):
     # Network definition
     net = net_factory(net_type=args.model, in_chns=1, class_num=num_classes)
@@ -156,7 +152,6 @@ def train(args, snapshot_path):
             y_pl = torch.argmax(mixed_prob.detach(), dim=1)  
             loss_PL = dice_loss(outputs_soft1, y_pl.unsqueeze(1)) + dice_loss(outputs_soft_ema, y_pl.unsqueeze(1))
 
-
             y_pl_oh = F.one_hot(y_pl, num_classes=num_classes).permute(0, 3, 1, 2).float()
             B_pl = exrct_boundary(y_pl_oh, iter_=1)
             B_i  = exrct_boundary(outputs_soft1,  iter_=1)
@@ -176,7 +171,6 @@ def train(args, snapshot_path):
             iter_num = iter_num + 1
             writer.add_scalar('info/lr', lr_, iter_num)
             writer.add_scalar('info/total_loss', loss, iter_num)
-            writer.add_scalar('info/consistency_weight', consistency_weight, iter_num)
             writer.add_scalar('info/loss_ce', loss_ce, iter_num)
             if iter_num % 200 == 0:
                 logging.info(
