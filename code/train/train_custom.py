@@ -43,7 +43,7 @@ parser.add_argument('--model', type=str,
 parser.add_argument('--num_classes', type=int,  default=4,
                     help='output channel of network')
 parser.add_argument('--max_iterations', type=int,
-                    default=60000, help='maximum epoch number to train')
+                    default=30000, help='maximum epoch number to train')
 parser.add_argument('--batch_size', type=int, default=8,
                     help='batch_size per gpu')
 parser.add_argument('--deterministic', type=int,  default=1,
@@ -101,6 +101,7 @@ def train(args, snapshot_path):
     max_iterations = args.max_iterations
     model = create_model(ema=False,num_classes=4)
     model_ema = create_model(ema=True, num_classes=4)
+    model_ema_another = create_model(ema=True, num_classes=4)
 
     db_train = BaseDataSets(base_dir=args.root_path, split="train", transform=transforms.Compose([
         RandomGenerator(args.patch_size)
@@ -116,9 +117,14 @@ def train(args, snapshot_path):
                            num_workers=1)
 
     model.train()
+    model_ema.train()
+    model_ema_another.train()
+
     optimizer = optim.SGD(model.parameters(), lr=base_lr,
                           momentum=0.9, weight_decay=0.0001)
     ema_optimizer = WeightEMA(model, model_ema, alpha=0.99)
+    ema_optimizer_another = WeightEMA(model, model_ema_another, alpha=0.99)
+
     ce_loss = CrossEntropyLoss(ignore_index=4)
     dice_loss = losses.pDLoss(num_classes, ignore_index=4)
     bd_loss_fn = BoundaryLoss(iter_=1, weight_boundary=1.0)
@@ -141,35 +147,52 @@ def train(args, snapshot_path):
             with torch.no_grad():
                 ema_output = model_ema(volume_batch)
                 outputs_soft_ema = torch.softmax(ema_output, dim=1)
+                ema_output_another = model_ema_another(volume_batch)
+                outputs_soft_ema_another = torch.softmax(ema_output_another, dim=1)
+
             outputs = model(volume_batch)
             outputs_soft1 = torch.softmax(outputs, dim=1)
 
             loss_ce = ce_loss(outputs, label_batch.long())
-            loss_ce_pseudo = ce_loss(ema_output, label_batch.long())
+            loss_ce_ema = ce_loss(ema_output, label_batch.long())
+            loss_ce_ema_another = ce_loss(ema_output_another, label_batch.long())
+            flag = 0
+            if loss_ce_ema < loss_ce_ema_another:
+                loss_win = loss_ce_ema
+                outputs_win = outputs_soft_ema
+                flag = 0
+            else:
+                loss_win = loss_ce_ema_another
+                outputs_win = outputs_soft_ema_another
+                flag = 1
 
             with torch.no_grad():
-                denom = (loss_ce.detach() + loss_ce_pseudo.detach()).clamp_min(1e-8)
-                w_i = (loss_ce_pseudo.detach() / denom).item()
+                denom = (loss_ce.detach() + loss_win.detach()).clamp_min(1e-8)
+                w_i = (loss_win.detach() / denom).item()
                 w_pseudo = (loss_ce.detach() / denom).item()
 
-            mixed_prob = w_i * outputs_soft1 + w_pseudo * outputs_soft_ema
+            mixed_prob = w_i * outputs_soft1 + w_pseudo * outputs_win
             y_pl = torch.argmax(mixed_prob.detach(), dim=1)  
-            loss_PL = dice_loss(outputs_soft1, y_pl.unsqueeze(1)) + dice_loss(outputs_soft_ema, y_pl.unsqueeze(1))
+            loss_PL = dice_loss(outputs_soft1, y_pl.unsqueeze(1)) + dice_loss(outputs_win, y_pl.unsqueeze(1))
 
 
             y_pl_oh = F.one_hot(y_pl, num_classes=num_classes).permute(0, 3, 1, 2).float()
             B_pl = exrct_boundary(y_pl_oh, iter_=1)
             B_i  = exrct_boundary(outputs_soft1,  iter_=1)
-            B_j  = exrct_boundary(outputs_soft_ema,  iter_=1)
+            B_j  = exrct_boundary(outputs_win,  iter_=1)
             loss_BD = bd_loss_fn(B_j, B_pl.detach()) + bd_loss_fn(B_i, B_pl.detach())
 
             consistency_weight = get_current_consistency_weight(iter_num // 300)  #150
-            loss_pse_sup = (loss_PL * 0.5 * consistency_weight)
+            loss_pse_sup = (loss_PL * 0.3)
             loss = loss_ce + loss_pse_sup + 0.1 * loss_BD
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            ema_optimizer.step()
+            if flag == 0:
+                ema_optimizer.step()
+            else:
+                ema_optimizer_another.step()
+
             lr_ = base_lr * (1.0 - iter_num / max_iterations) ** 0.9
             for param_group in optimizer.param_groups:
                 param_group['lr'] = lr_
