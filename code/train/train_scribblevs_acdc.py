@@ -141,6 +141,7 @@ def train(args, snapshot_path):
                 outputs_soft_ema = torch.softmax(ema_output, dim=1)
             outputs = model(volume_batch)
             outputs_soft1 = torch.softmax(outputs, dim=1)
+
             pseudo_label = process_pseudo_label(outputs_soft_ema, tau=args.tau)
             pseudo_label_stu = process_pseudo_label(outputs_soft1, tau=args.tau)
 
