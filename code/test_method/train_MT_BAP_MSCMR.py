@@ -29,7 +29,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--root_path', type=str,
                     default='../../data/MSCMR', help='Name of Experiment')
 parser.add_argument('--exp', type=str,
-                    default='MeanTeacher+BAP', help='experiment_name')
+                    default='MeanTeacher+BAP_ACDC', help='experiment_name')
 parser.add_argument('--data', type=str,
                     default='ACDC', help='experiment_name')
 parser.add_argument('--tau', type=float,

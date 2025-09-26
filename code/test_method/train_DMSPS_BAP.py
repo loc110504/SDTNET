@@ -41,7 +41,7 @@ def parse_args():
                         default='unet_cct', help='model_name, select: unet_cct, \
                             NestedUNet2d_2dual, swinunet_2dual')
     parser.add_argument('--exp', type=str,
-                        default='DMSPS_Stage1', help='experiment_name')
+                        default='DMSPS_BAP', help='experiment_name')
     parser.add_argument('--fold', type=str,
                         default='MAAGfold70', help='cross validation fold')
     parser.add_argument('--sup_type', type=str,
