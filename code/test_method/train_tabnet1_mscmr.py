@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from tqdm import tqdm
 
-from dataloader.acdc import BaseDataSets, RandomGenerator
+from dataloader.mscmr import MSCMRDataSets, RandomGenerator
 from networks.net_factory import net_factory
 from utils import losses, ramps
 from utils.Jigsaw import Cutout_min, Jigsaw, RandomBrightnessContrast, exrct_boundary, BoundaryLoss
@@ -27,11 +27,11 @@ from val import test_single_volume_scribblevs
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--root_path', type=str,
-                    default='../../data/ACDC', help='Name of Experiment')
+                    default='../../data/MSCMR', help='Name of Experiment')
 parser.add_argument('--exp', type=str,
-                    default='TABNet', help='experiment_name')
+                    default='NormalIntensity', help='experiment_name')
 parser.add_argument('--data', type=str,
-                    default='ACDC', help='experiment_name')
+                    default='MSCMR', help='experiment_name')
 parser.add_argument('--fold', type=str,
                     default='MAAGfold70', help='cross validation')
 parser.add_argument('--sup_type', type=str,
@@ -73,10 +73,10 @@ def train(args, snapshot_path):
     max_iterations = args.max_iterations
     model = create_model(ema=False,num_classes=4)
 
-    db_train = BaseDataSets(base_dir=args.root_path, split="train", transform=transforms.Compose([
+    db_train = MSCMRDataSets(base_dir=args.root_path, split="train", transform=transforms.Compose([
         RandomGenerator(args.patch_size)
     ]), fold=args.fold, sup_type=args.sup_type)
-    db_val = BaseDataSets(base_dir=args.root_path, fold=args.fold, split="val")
+    db_val = MSCMRDataSets(base_dir=args.root_path, fold=args.fold, split="val")
 
     def worker_init_fn(worker_id):
         random.seed(args.seed + worker_id)
@@ -118,33 +118,17 @@ def train(args, snapshot_path):
             # 3 Augment
             # Cutout
             scrib = scrib.cuda(non_blocking=True)  
-            scrib_oh = F.one_hot(scrib.clamp(0, K-1), num_classes=K)          # (B,H,W,K)
-            scrib_oh = scrib_oh.permute(0, 3, 1, 2).contiguous().float()
-            img_i, labels_i_oh = Cutout_min(
-                imgs=image,
-                labels=scrib_oh,
-                device=image.device,
-                n_holes=1
-            ) 
-            scrib_i = torch.argmax(labels_i_oh, dim=1)
-            # Jigsaw
-            img_j, shuffle_idx = Jigsaw(image, num_x=2, num_y=2, shuffle_index=None)
             # Intensity
             img_k = RandomBrightnessContrast(image)
-            logits_i = model(img_i)   # (B,C,H,W)
-            logits_j_shuf = model(img_j)
+            logits_j = model(image)
             logits_k = model(img_k)
-            logits_j, _ = Jigsaw(logits_j_shuf, num_x=2, num_y=2, shuffle_index=shuffle_idx)
 
-            y_i = torch.softmax(logits_i, dim=1)
             y_j = torch.softmax(logits_j, dim=1)
             y_k = torch.softmax(logits_k, dim=1)
 
-            # TAS loss
-            loss_ce_i = ce_loss(logits_i, scrib)
             loss_ce_j = ce_loss(logits_j, scrib)
             loss_ce_k = ce_loss(logits_k, scrib)
-            loss_TAS = loss_ce_i + loss_ce_j + loss_ce_k
+            loss_TAS = loss_ce_j + loss_ce_k
             # BAP
             with torch.no_grad():
                 denom = (loss_ce_j.detach() + loss_ce_k.detach()).clamp_min(1e-8)
