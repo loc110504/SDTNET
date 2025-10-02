@@ -29,7 +29,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--root_path', type=str,
                     default='../../data/ACDC', help='Name of Experiment')
 parser.add_argument('--exp', type=str,
-                    default='MeanTeacher+BAP_ACDC', help='experiment_name')
+                    default='MT+BAP', help='experiment_name')
 parser.add_argument('--data', type=str,
                     default='ACDC', help='experiment_name')
 parser.add_argument('--tau', type=float,
@@ -112,7 +112,8 @@ def train(args, snapshot_path):
                            num_workers=1)
 
     model.train()
-    optimizer = optim.Adam(model.parameters(), lr=0.0001, weight_decay=0.0001)
+    optimizer = optim.SGD(model.parameters(), lr=base_lr,
+                          momentum=0.9, weight_decay=0.0001)
     ema_optimizer = WeightEMA(model, model_ema, alpha=0.99)
     ce_loss = CrossEntropyLoss(ignore_index=4)
     dice_loss = losses.pDLoss(num_classes, ignore_index=4)
