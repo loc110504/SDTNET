@@ -151,8 +151,8 @@ def train(args, snapshot_path):
             loss_ce_pseudo = ce_loss(ema_output, label_batch[:].long())
 
             # High- and Low-level feature consistency
-            loss_low = (F.l1_loss(ema_low, low) + F.l1_loss(ema_high, high)) / 2
-            loss_high = ((1 - F.cosine_similarity(ema_low.flatten(1), low.flatten(1)).mean()) + (1 - F.cosine_similarity(ema_high.flatten(1), high.flatten(1)).mean())) / 2
+            loss_low = F.l1_loss(ema_low, low)
+            loss_high = 1 - F.cosine_similarity(ema_high.flatten(1), high.flatten(1)).mean()
 
             # BAP
             with torch.no_grad():
