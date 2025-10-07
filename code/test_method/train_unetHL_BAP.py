@@ -29,7 +29,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--root_path', type=str,
                     default='../../data/ACDC', help='Name of Experiment')
 parser.add_argument('--exp', type=str,
-                    default='Unet_HL_consistency', help='experiment_name')
+                    default='Unet_HL', help='experiment_name')
 parser.add_argument('--data', type=str,
                     default='ACDC', help='experiment_name')
 parser.add_argument('--tau', type=float,
@@ -170,7 +170,7 @@ def train(args, snapshot_path):
             loss_BD = bd_loss_fn(B_stu, B_pl.detach()) + bd_loss_fn(B_tea, B_pl.detach())
 
             consistency_weight = get_current_consistency_weight(iter_num // 300)  #150
-            loss = loss_ce + 0.5 * loss_PL * consistency_weight + 0.1 * loss_BD + (loss_low + loss_high) * 0.5 * consistency_weight
+            loss = loss_ce + 0.3 * loss_PL + 0.1 * loss_BD + (loss_low + loss_high) * 0.5 * consistency_weight
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()

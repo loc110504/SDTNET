@@ -23,7 +23,7 @@ parser.add_argument('--root_path', type=str,
 parser.add_argument('--exp', type=str,
                     default='MSCMR/Fully_Supervised', help='experiment_name')
 parser.add_argument('--model', type=str,
-                    default='unet_cct', help='model_name')
+                    default='unet_hl', help='model_name')
 parser.add_argument('--num_classes', type=int,  default=4,
                     help='output channel of network')
 
@@ -52,6 +52,8 @@ def test_single_volume(case, net, test_save_path, FLAGS):
         with torch.no_grad():
             if FLAGS.model == "unet_cct":
                 out_main, _ = net(input)
+            elif FLAGS.model == "unet_hl":
+                out_main, _, _ = net(input)
             else:
                 out_main = net(input)
             out = torch.argmax(torch.softmax(
@@ -85,7 +87,7 @@ def Inference(FLAGS):
         if f.endswith(".h5")
     ]
     image_list.sort()
-    save_mode_path = "../../checkpoints/ACDC_DMSPS1/unet_cct_best_model.pth"
+    save_mode_path = "../../checkpoints/MSCMR_UnetHL/unet_hl_best_model.pth"
     test_save_path = "../../results/MSCMR_DMSPS_Stage1/"
     if os.path.exists(test_save_path):
         shutil.rmtree(test_save_path)

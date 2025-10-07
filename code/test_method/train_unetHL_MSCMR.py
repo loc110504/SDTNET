@@ -18,8 +18,8 @@ from torch.nn.modules.loss import CrossEntropyLoss
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from tqdm import tqdm
-from utils.Jigsaw import  exrct_boundary, BoundaryLoss
-from dataloader.acdc import BaseDataSets, RandomGenerator
+
+from dataloader.mscmr import MSCMRDataSets, RandomGenerator
 from networks.net_factory import net_factory
 from utils import losses, ramps
 from val import test_single_volume_unethl
@@ -27,11 +27,11 @@ import torch.nn.functional as F
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--root_path', type=str,
-                    default='../../data/ACDC', help='Name of Experiment')
+                    default='../../data/MSCMR', help='Name of Experiment')
 parser.add_argument('--exp', type=str,
-                    default='Unet_HL_consistency', help='experiment_name')
+                    default='UnetHL_con', help='experiment_name')
 parser.add_argument('--data', type=str,
-                    default='ACDC', help='experiment_name')
+                    default='MSCMR', help='experiment_name')
 parser.add_argument('--tau', type=float,
                     default=0.5, help='experiment_name')
 parser.add_argument('--fold', type=str,
@@ -102,10 +102,10 @@ def train(args, snapshot_path):
     model = create_model(ema=False,num_classes=4)
     model_ema = create_model(ema=True, num_classes=4)
 
-    db_train = BaseDataSets(base_dir=args.root_path, split="train", transform=transforms.Compose([
+    db_train = MSCMRDataSets(base_dir=args.root_path, split="train", transform=transforms.Compose([
         RandomGenerator(args.patch_size)
     ]), fold=args.fold, sup_type=args.sup_type)
-    db_val = BaseDataSets(base_dir=args.root_path, fold=args.fold, split="val")
+    db_val = MSCMRDataSets(base_dir=args.root_path, fold=args.fold, split="val")
 
     def worker_init_fn(worker_id):
         random.seed(args.seed + worker_id)
@@ -121,7 +121,7 @@ def train(args, snapshot_path):
     ema_optimizer = WeightEMA(model, model_ema, alpha=0.99)
     ce_loss = CrossEntropyLoss(ignore_index=4)
     dice_loss = losses.pDLoss(num_classes, ignore_index=4)
-    bd_loss_fn = BoundaryLoss(iter_=1, weight_boundary=1.0)
+
     writer = SummaryWriter(snapshot_path + '/log')
     logging.info("{} iterations per epoch".format(len(trainloader)))
     print(len(trainloader))
@@ -146,31 +146,22 @@ def train(args, snapshot_path):
             pseudo_label = process_pseudo_label(outputs_soft_ema, tau=args.tau)
             pseudo_label_stu = process_pseudo_label(outputs_soft1, tau=args.tau)
 
-            # Scribble supervised loss
             loss_ce = ce_loss(outputs, label_batch[:].long())
             loss_ce_pseudo = ce_loss(ema_output, label_batch[:].long())
-
-            # High- and Low-level feature consistency
+            if loss_ce > loss_ce_pseudo:
+                loss_pseudo_ce = ce_loss(outputs, pseudo_label[:].long())
+                loss_pseudo_dc = dice_loss(outputs_soft1, pseudo_label.unsqueeze(1))
+            else:
+                loss_pseudo_ce = ce_loss(outputs, pseudo_label_stu[:].long())
+                loss_pseudo_dc = dice_loss(outputs_soft1, pseudo_label_stu.unsqueeze(1))
+            
             loss_low = (F.l1_loss(ema_low, low) + F.l1_loss(ema_high, high)) / 2
             loss_high = ((1 - F.cosine_similarity(ema_low.flatten(1), low.flatten(1)).mean()) + (1 - F.cosine_similarity(ema_high.flatten(1), high.flatten(1)).mean())) / 2
 
-            # BAP
-            with torch.no_grad():
-                denom = (loss_ce.detach() + loss_ce_pseudo.detach()).clamp_min(1e-8)
-                w_j = (loss_ce_pseudo.detach() / denom).item()
-                w_k = (loss_ce.detach() / denom).item()
-            mixed_prob = w_j * outputs_soft1 + w_k * outputs_soft_ema
-            y_pl = torch.argmax(mixed_prob.detach(), dim=1)
-            loss_PL = dice_loss(outputs_soft1, y_pl.unsqueeze(1)) + dice_loss(outputs_soft_ema, y_pl.unsqueeze(1))
-
-            y_pl_oh = F.one_hot(y_pl, num_classes=num_classes).permute(0, 3, 1, 2).float()
-            B_pl = exrct_boundary(y_pl_oh, iter_=1)
-            B_stu  = exrct_boundary(outputs_soft1,  iter_=1)
-            B_tea  = exrct_boundary(outputs_soft_ema,  iter_=1)
-            loss_BD = bd_loss_fn(B_stu, B_pl.detach()) + bd_loss_fn(B_tea, B_pl.detach())
 
             consistency_weight = get_current_consistency_weight(iter_num // 300)  #150
-            loss = loss_ce + 0.5 * loss_PL * consistency_weight + 0.1 * loss_BD + (loss_low + loss_high) * 0.5 * consistency_weight
+            loss_pse_sup = (loss_pseudo_dc+loss_pseudo_ce)*0.5 * consistency_weight
+            loss = loss_ce + loss_pse_sup  + (loss_low + loss_high) * 0.5 * consistency_weight
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -186,8 +177,8 @@ def train(args, snapshot_path):
             writer.add_scalar('info/loss_ce', loss_ce, iter_num)
             if iter_num % 200 == 0:
                 logging.info(
-                'iteration %d : loss : %f, loss_ce: %f, alpha: %f' %
-                (iter_num, loss.item(), loss_ce.item(), alpha))
+                'iteration %d : loss : %f, loss_ce: %f, loss_pse_sup: %f, alpha: %f' %
+                (iter_num, loss.item(), loss_ce.item(), loss_pse_sup.item(), alpha))
 
             if iter_num > 1 and iter_num % 200 == 0:
                 model.eval()
