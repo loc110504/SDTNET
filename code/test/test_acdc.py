@@ -23,7 +23,7 @@ parser.add_argument('--root_path', type=str,
 parser.add_argument('--exp', type=str,
                     default='ACDC/Fully_Supervised', help='experiment_name')
 parser.add_argument('--model', type=str,
-                    default='unet_cct', help='model_name')
+                    default='unet_hl', help='model_name')
 parser.add_argument('--num_classes', type=int,  default=4,
                     help='output channel of network')
 
@@ -37,7 +37,7 @@ def calculate_metric_percase(pred, gt):
     return dice, hd95, asd
 
 
-def test_single_volume(case, net, test_save_path, FLAGS):
+def test_single_volume(case, net, FLAGS):
     h5f = h5py.File(FLAGS.root_path + "/ACDC_training_volumes/{}.h5".format(case), 'r')
     image = h5f['image'][:]
     label = h5f['label'][:]
@@ -50,8 +50,8 @@ def test_single_volume(case, net, test_save_path, FLAGS):
             0).unsqueeze(0).float().cuda()
         net.eval()
         with torch.no_grad():
-            if FLAGS.model == "unet_cct":
-                out_main, _ = net(input)
+            if FLAGS.model == "unet_hl":
+                out_main, _, _ = net(input)
             else:
                 out_main = net(input)
             out = torch.argmax(torch.softmax(
@@ -63,16 +63,6 @@ def test_single_volume(case, net, test_save_path, FLAGS):
     first_metric = calculate_metric_percase(prediction == 1, label == 1)
     second_metric = calculate_metric_percase(prediction == 2, label == 2)
     third_metric = calculate_metric_percase(prediction == 3, label == 3)
-
-    img_itk = sitk.GetImageFromArray(image.astype(np.float32))
-    img_itk.SetSpacing((1, 1, 10))
-    prd_itk = sitk.GetImageFromArray(prediction.astype(np.float32))
-    prd_itk.SetSpacing((1, 1, 10))
-    lab_itk = sitk.GetImageFromArray(label.astype(np.float32))
-    lab_itk.SetSpacing((1, 1, 10))
-    sitk.WriteImage(prd_itk, test_save_path + case + "_pred.nii.gz")
-    sitk.WriteImage(img_itk, test_save_path + case + "_img.nii.gz")
-    sitk.WriteImage(lab_itk, test_save_path + case + "_gt.nii.gz")
     return first_metric, second_metric, third_metric
 
 
@@ -81,11 +71,8 @@ def Inference(FLAGS):
         image_list = f.readlines()
     image_list = sorted([item.replace('\n', '').split(".")[0]
                          for item in image_list])
-    save_mode_path = "../../checkpoints/ACDC_DMSPS1/unet_cct_best_model.pth"
-    test_save_path = "../../results/ACDC_DMSPS1"
-    if os.path.exists(test_save_path):
-        shutil.rmtree(test_save_path)
-    os.makedirs(test_save_path)
+    save_mode_path = "../../checkpoints/ACDC_DualTeacher/unet_hl_best_model.pth"
+
     net = net_factory(net_type=FLAGS.model, in_chns=1,
                       class_num=FLAGS.num_classes)
     net.load_state_dict(torch.load(save_mode_path))
@@ -97,7 +84,7 @@ def Inference(FLAGS):
     third_total = 0.0
     for case in tqdm(image_list):
         first_metric, second_metric, third_metric = test_single_volume(
-            case, net, test_save_path, FLAGS)
+            case, net, FLAGS)
         first_total += np.asarray(first_metric)
         second_total += np.asarray(second_metric)
         third_total += np.asarray(third_metric)

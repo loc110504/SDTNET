@@ -54,7 +54,7 @@ You can modify these arguments in `run.sh` to adjust the training setup for your
 │   │   └── unet.py
 │   ├── 📁 test
 │   │   ├── test_mscmr.py
-│   │   ├── test_unet.py
+│   │   ├── test_acdc.py
 │   │   └── utils.py
 │   ├── 📁 train
 │   │   ├── __init__.py
@@ -67,7 +67,7 @@ You can modify these arguments in `run.sh` to adjust the training setup for your
 │   │   ├── losses.py
 │   │   ├── pick_reliable_pixels.py
 │   │   └── ramps.py
-│   └── 🐍 val.py
+│   └── val.py
 |
 ├── 📁 data
 │   ├── 📁 ACDC
@@ -76,9 +76,6 @@ You can modify these arguments in `run.sh` to adjust the training setup for your
 ├── 📝 README.md
 └── 📄 requirements.txt
 ```
-
-
-
 
 # Acknowledgement
 We gratefully acknowledge the public release of [WSL4MIS](https://github.com/HiLab-git/WSL4MIS) and [ShapePU](https://github.com/BWGZK/ShapePU) for part of their codes, processed datasets and data splits.# scribble_code
