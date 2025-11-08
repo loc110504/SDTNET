@@ -1,5 +1,5 @@
 # SDT-Net
-Official code implementation of "SDT-Net: Dynamic Teacher Switching with Hierarchical Consistency for Scribble-Supervised Medical Image Segmentation"
+Official code implementation of *"SDT-Net: Dynamic Teacher Switching with Hierarchical Consistency for Scribble-Supervised Medical Image Segmentation"*
 ### Introduction
 The overall framework of SDTNet:
 ![Training Process](framework.png)
@@ -54,35 +54,24 @@ You can modify these arguments in `run.sh` to adjust the training setup for your
 ```
 ├── 📁 code
 │   ├── 📁 dataloader
-│   │   ├── __init__.py
 │   │   ├── acdc.py
 │   │   └── mscmr.py
 │   ├── 📁 networks
-│   │   ├── __init__.py
 │   │   ├── net_factory.py
 │   │   └── unet.py
 │   ├── 📁 test
 │   │   ├── test_mscmr.py
 │   │   ├── test_acdc.py
-│   │   └── utils.py
 │   ├── 📁 train
-│   │   ├── __init__.py
 │   │   ├── run.sh
 │   │   ├── train_method_acdc.py
 │   │   └── train_method_mscmr.py
 │   ├── 📁 utils
-│   │   ├── __init__.py
-│   │   ├── ema_optim.py
-│   │   ├── losses.py
-│   │   ├── pick_reliable_pixels.py
-│   │   └── ramps.py
 │   └── val.py
 |
 ├── 📁 data
 │   ├── 📁 ACDC
 │   ├── 📁 MSCMR
-|
-├── 📝 README.md
 └── 📄 requirements.txt
 ```
 
