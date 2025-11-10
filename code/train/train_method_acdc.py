@@ -30,7 +30,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--root_path', type=str,
                     default='../../data/ACDC', help='Name of Experiment')
 parser.add_argument('--exp', type=str,
-                    default='DualTeacher', help='experiment_name')
+                    default='SDTNet', help='experiment_name')
 parser.add_argument('--data', type=str,
                     default='ACDC', help='experiment_name')
 parser.add_argument('--fold', type=str,
